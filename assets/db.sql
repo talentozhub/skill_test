@@ -47,6 +47,7 @@ CREATE TABLE `employee` (
   `email` varchar(255) DEFAULT NULL,
   `phone_number` varchar(255) DEFAULT NULL,
   `password` varchar(255) DEFAULT NULL,
+  `gender` varchar(10) DEFAULT NULL, 
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
