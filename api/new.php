@@ -8,12 +8,13 @@ require_once("../models/Employee.php");
  * that has been specified here.
  */
 
-//allowed data is "name", "number", "email" & "type"
+//allowed data is "name", "number", "email" , "type" & "gender"
 $receivedData = array(
     "name" => "Bob Smith",
     "email" => "luke.zawadzki@astutepayroll.com",
     "number" => "+61 430 131 409",
-    "type" => "full-time"
+    "type" => "full-time",
+    "gender" => "Male"
 );
 
 //this simulates a call to the API.
@@ -23,25 +24,36 @@ var_dump(handle_API_Request($receivedData));
  * This is the processing code for the API.
  */
 function handle_API_Request($data) {
-    try {
 
-        mysql_connect("localhost", "root");
+    // Validate required fields
+    $requiredFields = ['name', 'email', 'number', 'type', 'gender'];
+    foreach ($requiredFields as $field) {
+        if (empty($data[$field])) {
+            throw new Exception("The field '$field' is required and cannot be empty.");
+        }
+    }
+    
+    try {
+        $dbConnection = mysqli_connect("localhost", "root", "", "test");
+        if (!$dbConnection) {
+            throw new Exception("Connection failed: " . mysqli_connect_error());
+        }
+
         $employee = new Employee();
         $employee->name = $data['name'];
         $employee->email = $data['email'];
         $employee->phoneNumber = $data['number'];
         $employee->type = $data['type'];
+        $employee->gender = $data['gender'];
         $generatedPassword = uniqid();
         $employee->password = sha1($generatedPassword);
 
         $employee->save();
 
-        //auditing
         $timestamp = date("d/m/y h:i:s");
-        $sql = "insert into audit_log (`message`) VALUES ('{$employee->name} was added on $timestamp')";
-        mysql_query($sql);
+        $sql = "INSERT INTO audit_log (`message`) VALUES ('{$employee->name} was added on $timestamp')";
+        mysqli_query($dbConnection, $sql);
 
-        //send comms
         mail($employee->email, "Thanks for registering", "Dear " . $employee->name . ",\nYou have been added to AwesomeCorp! your password is $generatedPassword.\nYou can login at: http://awesomecorp.recruiterforce.com/login.\nRegards,\nRecruiterForce");
 
         $employee->email_sent = 1;
@@ -51,12 +63,10 @@ function handle_API_Request($data) {
             "status" => "success",
             "message" => $employee->id . " was added"
         );
-    }
-    catch (exception $e) {
+    } catch (Exception $e) {
         return array(
             "status" => "error",
             "message" => $e->getMessage()
         );
     }
-
 }
