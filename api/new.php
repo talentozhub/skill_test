@@ -9,15 +9,24 @@ require_once("../models/Employee.php");
  */
 
 //allowed data is "name", "number", "email" & "type"
+$name = $_POST['name'] ?? '';
+$email = $_POST['email'] ?? '';
+$mobile = $_POST['mobile'] ?? '';
+$gender = $_POST['gender'] ?? '';
+$type = $_POST['type'] ?? '';
+
 $receivedData = array(
-    "name" => "Bob Smith",
-    "email" => "luke.zawadzki@astutepayroll.com",
-    "number" => "+61 430 131 409",
-    "type" => "full-time"
+    "name" => $name,
+    "email" => $email,
+    "number" => $mobile,
+    "type" => $type,
+    "gender" => $gender
 );
 
 //this simulates a call to the API.
 var_dump(handle_API_Request($receivedData));
+
+
 
 /**
  * This is the processing code for the API.
@@ -25,12 +34,17 @@ var_dump(handle_API_Request($receivedData));
 function handle_API_Request($data) {
     try {
 
-        mysql_connect("localhost", "root");
+        $connection = mysqli_connect("localhost", "root", "", "test");
+        if (!$connection) {
+            throw new Exception('Database connection failed: ' . mysqli_connect_error());
+        }
+
         $employee = new Employee();
         $employee->name = $data['name'];
         $employee->email = $data['email'];
         $employee->phoneNumber = $data['number'];
         $employee->type = $data['type'];
+        $employee->gender = $data['gender'];
         $generatedPassword = uniqid();
         $employee->password = sha1($generatedPassword);
 
@@ -38,11 +52,23 @@ function handle_API_Request($data) {
 
         //auditing
         $timestamp = date("d/m/y h:i:s");
-        $sql = "insert into audit_log (`message`) VALUES ('{$employee->name} was added on $timestamp')";
-        mysql_query($sql);
+        $auditSql = "INSERT INTO audit_log (`message`) VALUES (?)";
+        $stmt = mysqli_prepare($connection, $auditSql);
+        mysqli_stmt_bind_param($stmt, 's', $message);
+        $message = "{$employee->name} was added on $timestamp";
+        mysqli_stmt_execute($stmt);
 
-        //send comms
-        mail($employee->email, "Thanks for registering", "Dear " . $employee->name . ",\nYou have been added to AwesomeCorp! your password is $generatedPassword.\nYou can login at: http://awesomecorp.recruiterforce.com/login.\nRegards,\nRecruiterForce");
+        // ✨ Append to CSV file
+        $csvLine = "{$employee->name}\t{$employee->email}\t{$employee->phoneNumber}\t{$employee->type}\t{$employee->gender}\n";
+        file_put_contents(__DIR__ . '/../tmp/employee_report.csv', $csvLine, FILE_APPEND | LOCK_EX);
+
+
+        // Send comms
+        mail(
+            $employee->email,
+            "Thanks for registering",
+            "Dear " . $employee->name . ",\nYou have been added to AwesomeCorp! Your password is $generatedPassword.\nYou can login at: http://awesomecorp.recruiterforce.com/login.\nRegards,\nRecruiterForce"
+        );
 
         $employee->email_sent = 1;
         $employee->save();

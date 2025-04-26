@@ -10,7 +10,7 @@ class Employee {
     /**
      * @var bool
      */
-    public $email_sent;
+    public $email_sent = 0;
 
     /**
      * The unique identifier
@@ -48,6 +48,8 @@ class Employee {
      */
     public $type;
 
+    public $gender;
+
     /**
      * Full time employee - works 40 hours week+
      */
@@ -68,18 +70,21 @@ class Employee {
      * @throws Exception if we had a problem saving.
      */
     public function save() {
-        $pdo = new PDO("mysql:host=localhost;dbname=test", "root");
+        $pdo = new PDO("mysql:host=localhost;dbname=test", "root", "");
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        $updateId = false;
+        $isNew = empty($this->id);
 
-        if (!$this->id) {
-            $stmt = $pdo->prepare("INSERT INTO employee (`name`, `phone_number`, `type`, `email`, `password`, `email_sent`) VALUES (:name, :phone, :type, :email, :password, :email_sent)");
-            $updateId = true;
+        
+        if ($isNew) {
+            $stmt = $pdo->prepare("INSERT INTO employee (`name`, `phone_number`, `type`, `email`, `password`, `email_sent`, `gender`) 
+                                    VALUES (:name, :phone, :type, :email, :password, :email_sent, :gender)");
+        } else {
+            $stmt = $pdo->prepare("UPDATE employee SET `name` = :name, `phone_number` = :phone, `type` = :type, 
+                                    `email` = :email, `password` = :password, `email_sent` = :email_sent, `gender` = :gender WHERE id = :id");
+            $stmt->bindParam(':id', $this->id, PDO::PARAM_INT);
         }
-        else {
-            $stmt = $pdo->prepare("UPDATE employee SET `name` = :name, `phone_number` = :phone ,`type` = :type, `email` = :email, `password` = :password, `email_sent` = :email_sent where id = :id");
-            $stmt->bindParam(":id", $this->id);
-        }
+
 
         $stmt->bindParam(':name', $this->name);
         $stmt->bindParam(':phone', $this->phoneNumber);
@@ -87,13 +92,13 @@ class Employee {
         $stmt->bindParam(':email', $this->email);
         $stmt->bindParam(':password', $this->password);
         $stmt->bindParam(':email_sent', $this->email_sent);
-
+        $stmt->bindParam(':gender', $this->gender);
 
         if (!$stmt->execute()) {
             throw new Exception("Could not save employee.");
         }
 
-        if ($updateId) {
+        if ($isNew) {
             $this->id = $pdo->lastInsertId();
         }
 
