@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/../config/database.php';
+
 /**
  * Class Employee
  *
@@ -49,6 +51,12 @@ class Employee {
     public $type;
 
     /**
+     * The employee's gender
+     * @var string
+     */
+    public $gender;
+
+    /**
      * Full time employee - works 40 hours week+
      */
     const TYPE_FULL_TIME = "full-time";
@@ -68,16 +76,17 @@ class Employee {
      * @throws Exception if we had a problem saving.
      */
     public function save() {
-        $pdo = new PDO("mysql:host=localhost;dbname=test", "root");
+        // Get database connection
+        $pdo = getDatabaseConnection();
 
         $updateId = false;
 
         if (!$this->id) {
-            $stmt = $pdo->prepare("INSERT INTO employee (`name`, `phone_number`, `type`, `email`, `password`, `email_sent`) VALUES (:name, :phone, :type, :email, :password, :email_sent)");
+            $stmt = $pdo->prepare("INSERT INTO employee (`name`, `phone_number`, `type`, `email`, `password`, `email_sent`, `gender`) VALUES (:name, :phone, :type, :email, :password, :email_sent, :gender)");
             $updateId = true;
         }
         else {
-            $stmt = $pdo->prepare("UPDATE employee SET `name` = :name, `phone_number` = :phone ,`type` = :type, `email` = :email, `password` = :password, `email_sent` = :email_sent where id = :id");
+            $stmt = $pdo->prepare("UPDATE employee SET `name` = :name, `phone_number` = :phone ,`type` = :type, `email` = :email, `password` = :password, `email_sent` = :email_sent, `gender` = :gender where id = :id");
             $stmt->bindParam(":id", $this->id);
         }
 
@@ -87,6 +96,7 @@ class Employee {
         $stmt->bindParam(':email', $this->email);
         $stmt->bindParam(':password', $this->password);
         $stmt->bindParam(':email_sent', $this->email_sent);
+        $stmt->bindParam(':gender', $this->gender);
 
 
         if (!$stmt->execute()) {

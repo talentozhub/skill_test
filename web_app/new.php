@@ -1,66 +1,117 @@
+<?php
+session_start();
+
+// Include simple database configuration
+require_once __DIR__ . '/../config/database.php';
+
+// Handle form submission first, before any HTML output
+if ($_POST) {
+    // Basic input sanitization
+    $employeeName = trim($_POST['name'] ?? '');
+    $phoneNumber = trim($_POST['phone_number'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $employeeType = $_POST['employee_type'] ?? '1';
+    $gender = $_POST['gender'] ?? 'not_specified';
+    $userPassword = $_POST['password'] ?? '';
+    
+    // Basic validation
+    $errors = [];
+    if (empty($employeeName)) $errors[] = "Employee name is required";
+    if (empty($email)) $errors[] = "Email is required";
+    if (empty($userPassword)) $errors[] = "Password is required";
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = "Invalid email format";
+    
+    // Display errors if any
+    if (!empty($errors)) {
+        echo "<h2>Validation Errors:</h2><ul>";
+        foreach ($errors as $error) {
+            echo "<li>" . htmlspecialchars($error, ENT_QUOTES, 'UTF-8') . "</li>";
+        }
+        echo "</ul>";
+        die();
+    }
+    
+    try {
+        // Get database connection
+        $pdo = getDatabaseConnection();
+
+        // Insert employee using prepared statements (already secure)
+        $stmt = $pdo->prepare("INSERT INTO employee (`name`, `phone_number`, `email`, `type`, `gender`) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([
+            $employeeName,  // Using original data for database storage
+            $phoneNumber,
+            $email,
+            $employeeType,
+            $gender
+        ]);
+
+        $employeeId = $pdo->lastInsertId();
+
+        // Add to audit log
+        $timestamp = date("d/m/y h:i:s");
+        $stmt = $pdo->prepare("INSERT INTO audit_log (`message`) VALUES (?)");
+        $stmt->execute(["{$employeeName} was added on $timestamp"]);
+
+        // Send email
+        $emailBody = "Dear {$safeEmployeeName},\nThanks for registering with AwesomeCorp!! your password is {$userPassword}.\nYou can login at: http://www.awesomecorp.com/login.\nRegards,\nAwesomeCorp";
+        mail($email, "Thanks for registering", $emailBody);
+
+        // Update password and email_sent
+        $hashedPassword = sha1($userPassword);
+        $stmt = $pdo->prepare("UPDATE employee SET password = ?, email_sent = 1 WHERE id = ?");
+        $stmt->execute([$hashedPassword, $employeeId]);
+
+        // Add to CSV report
+        $csvLine = "{$employeeId},{$employeeName},{$email}\n";
+        file_put_contents('/tmp/employee_report.csv', $csvLine, FILE_APPEND | LOCK_EX);
+
+        $_SESSION["logged_in_user_id"] = $employeeId;
+        $newURL = "dashboard.php";
+        header('Location: ' . $newURL);
+        exit;
+    } catch (PDOException $e) {
+        die("<h2>Sorry could not add employee: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8') . "</h2>");
+    }
+}
+?>
+
 <h1>Create New Employee</h1>
 <form action="" method="post">
     <ul>
         <li>
             Employee Name:
-            <input name="name" type="text" />
+            <input name="name" type="text" required />
         </li>
         <li>
             Phone Number:
-            <input name="phone_number" type="text"/>
+            <input name="phone_number" type="text" required />
         </li>
         <li>
             Password:
-            <input name="password" type="password" />
+            <input name="password" type="password" required />
         </li>
         <li>
             Email:
-            <input name="email" type="text"/>
+            <input name="email" type="email" required />
         </li>
         <li>
             Employee Type:
-            <select name="employee_type">
+            <select name="employee_type" required>
                 <option value="1">Part Time</option>
                 <option value="2">Full Time</option>
+            </select>
+        </li>
+        <li>
+            Gender:
+            <select name="gender" required>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="not_specified">Prefer not to specify</option>
             </select>
         </li>
     </ul>
     <input type="submit" value="Create">
 </form>
-
-<?php
-
-if ($_POST) {
-    $dbConnection = mysql_connect("localhost", "root");
-    mysql_select_db("test");
-
-    $sql = "insert into employee (`name`, `phone_number`, `email`, `type`) VALUES ('" .
-        mysql_escape_string($_POST['name']) . "', '" . mysql_escape_string($_POST['phone_number']) . "', '" . mysql_escape_string($_POST['email']) . "', '" . mysql_escape_string($_POST['employee_type']) . "')";
-    $result = mysql_query($sql);
-
-    if (!$result) {
-        die("<h2>Sorry could not add employee: " . mysql_error(). "</h2>" );
-
-    }
-
-    $timestamp = date("d/m/y h:i:s");
-    $sql = "insert into audit_log (`message`) VALUES ('{$_POST['name']} was added on $timestamp')";
-    mysql_query($sql);
-
-    $uniq = $_POST['password'];
-    mail($_POST['email'], "Thanks for registering", "Dear " . $_POST['name'] . ",\nThanks for registering with AwesomeCorp!! your password is $uniq.\nYou can login at: http://www.awesomecorp.com/login.\nRegards,\nAwesomeCorp");
-
-
-    $sql = "select max(id) from employee";
-    $row = mysql_fetch_row(mysql_query($sql));
-    $id = $row[0];
-    $_SESSION["logged_in_user_id"] = $id;
-
-    $sql = "update employee set password = '".sha1($uniq)."', email_sent = 1 where id = $id";
-    mysql_query($sql);
-    $newURL= "dashboard.php";
-    header('Location: '.$newURL);
-}
 
 
 
