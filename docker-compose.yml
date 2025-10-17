@@ -1,0 +1,30 @@
+services:
+  web:
+    build: .
+    container_name: skill_test_web
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_NAME: test
+      DB_USER: root
+      DB_PASS: root
+
+  db:
+    image: mariadb:10.2
+    container_name: skill_test_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: test
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
+volumes:
+  db_data:

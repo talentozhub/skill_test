@@ -1,0 +1,12 @@
+{
+  "name": "awesomecorp/skill_test",
+  "description": "Refactored PHP 7.1-compatible skill test",
+  "require": {
+    "php": ">=7.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "app/"
+    }
+  }
+}

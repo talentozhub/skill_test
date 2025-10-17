@@ -42,13 +42,17 @@ DROP TABLE IF EXISTS `employee`;
 CREATE TABLE `employee` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(255) DEFAULT NULL,
-  `email_sent` int(11) DEFAULT NULL,
-  `type` varchar(11) DEFAULT NULL,
   `email` varchar(255) DEFAULT NULL,
+  `email_sent` int(11) DEFAULT NULL,
   `phone_number` varchar(255) DEFAULT NULL,
   `password` varchar(255) DEFAULT NULL,
+  `type` varchar(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- Add gender column if it does not exist
+ALTER TABLE employee 
+    ADD COLUMN IF NOT EXISTS gender VARCHAR(10) AFTER type;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
