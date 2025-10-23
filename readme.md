@@ -47,5 +47,12 @@ Like any company - AwesomeCorp's code has some problems! - as the software devel
 - You should be able to visit `web_app/new.php` in your browser and be able to register a new employee.
 - You should be able to visit `api/new.php` and have the page load register a new employee.
 
+# Future Considerations
+
+*   **Configuration:** Configuration values, like the CSV report path, should be moved to the `.env` file instead of being hardcoded.
+*   **Autoloader:** A proper autoloader (like Composer's) should be implemented to manage class dependencies instead of using `require_once`.
+*   **Error Handling:** The error handling can be improved by providing more user-friendly error messages and logging the errors to a file.
+*   **Security:** The application should be reviewed for security vulnerabilities, such as SQL injection and cross-site scripting (XSS).
+*   **Testing:** A testing framework (like PHPUnit) should be used to write unit tests for the application.
 
 

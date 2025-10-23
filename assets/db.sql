@@ -42,8 +42,8 @@ DROP TABLE IF EXISTS `employee`;
 CREATE TABLE `employee` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(255) DEFAULT NULL,
-  `email_sent` int(11) DEFAULT NULL,
-  `type` varchar(11) DEFAULT NULL,
+  `email_sent` TINYINT(2) unsigned DEFAULT NULL,
+  `type` TINYINT(2) unsigned DEFAULT NULL,
   `email` varchar(255) DEFAULT NULL,
   `phone_number` varchar(255) DEFAULT NULL,
   `password` varchar(255) DEFAULT NULL,
@@ -51,14 +51,13 @@ CREATE TABLE `employee` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
+ALTER TABLE `employee`
+ADD COLUMN `gender` TINYINT(2) unsigned NULL AFTER `email`;
+
 --
 -- Dumping data for table `employee`
 --
 
-LOCK TABLES `employee` WRITE;
-/*!40000 ALTER TABLE `employee` DISABLE KEYS */;
-/*!40000 ALTER TABLE `employee` ENABLE KEYS */;
-UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

@@ -1,62 +1,54 @@
 <?php
 
-require_once("../models/Employee.php");
+require_once __DIR__ . '/../config/bootstrap.php';
+require_once ROOT . '/src/Event/EventDispatcher.php';
+require_once ROOT . '/src/Event/WelcomeEmailListener.php';
+require_once ROOT . '/src/Event/AuditLogListener.php';
+require_once ROOT . '/src/Event/CsvReportListener.php';
+require_once ROOT . '/src/Repository/EmployeeRepository.php';
+require_once ROOT . '/src/Service/EmployeeService.php';
 
-/**
- * For the purposes of the test, the way that the data comes in to the system is not relevant. Let's assume that
- * we have a REST API, and this is a POST request to the "new employee" endpoint. The data provided is the array
- * that has been specified here.
- */
+loadEnv(__DIR__ . '/../.env'); // Explicitly load .env for direct script execution
 
-//allowed data is "name", "number", "email" & "type"
+function handle_API_Request($data)
+{
+    $db = require ROOT . '/config/database.php';
+
+    $eventDispatcher = new EventDispatcher();
+    $eventDispatcher->addListener('EmployeeCreatedEvent', array(new WelcomeEmailListener(), 'handle'));
+    $eventDispatcher->addListener('EmployeeCreatedEvent', array(new AuditLogListener($db), 'handle'));
+    $eventDispatcher->addListener('EmployeeCreatedEvent', array(new CsvReportListener(), 'handle'));
+
+    $employeeRepository = new EmployeeRepository($db);
+    $employeeService = new EmployeeService(
+        $eventDispatcher,
+        $employeeRepository
+    );
+
+    try {
+        $employee = $employeeService->createEmployee($data);
+
+        return array(
+            'status' => 'success',
+            'message' => 'Employee ' . $employee->getName() . ' (' . $employee->getId() . ') created successfully.'
+        );
+    } catch (Exception $e) {
+        return array(
+            'status' => 'error',
+            'message' => 'Error creating employee: ' . $e->getMessage()
+        );
+    }
+}
+
+// Example usage:
 $receivedData = array(
-    "name" => "Bob Smith",
-    "email" => "luke.zawadzki@astutepayroll.com",
-    "number" => "+61 430 131 409",
-    "type" => "full-time"
+    'name' => 'John Doe',
+    'email' => 'john.doe@example.com',
+    'phone_number' => time(),
+    'password' => 'as44dasd',
+    'employee_type' => 1,
+    'gender' => 1
 );
 
-//this simulates a call to the API.
-var_dump(handle_API_Request($receivedData));
-
-/**
- * This is the processing code for the API.
- */
-function handle_API_Request($data) {
-    try {
-
-        mysql_connect("localhost", "root");
-        $employee = new Employee();
-        $employee->name = $data['name'];
-        $employee->email = $data['email'];
-        $employee->phoneNumber = $data['number'];
-        $employee->type = $data['type'];
-        $generatedPassword = uniqid();
-        $employee->password = sha1($generatedPassword);
-
-        $employee->save();
-
-        //auditing
-        $timestamp = date("d/m/y h:i:s");
-        $sql = "insert into audit_log (`message`) VALUES ('{$employee->name} was added on $timestamp')";
-        mysql_query($sql);
-
-        //send comms
-        mail($employee->email, "Thanks for registering", "Dear " . $employee->name . ",\nYou have been added to AwesomeCorp! your password is $generatedPassword.\nYou can login at: http://awesomecorp.recruiterforce.com/login.\nRegards,\nRecruiterForce");
-
-        $employee->email_sent = 1;
-        $employee->save();
-
-        return array(
-            "status" => "success",
-            "message" => $employee->id . " was added"
-        );
-    }
-    catch (exception $e) {
-        return array(
-            "status" => "error",
-            "message" => $e->getMessage()
-        );
-    }
-
-}
+header('Content-Type: application/json');
+echo json_encode(handle_API_Request($receivedData));

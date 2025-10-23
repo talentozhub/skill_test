@@ -1,5 +1,7 @@
-<h1>Dashboard!</h1>
+<?php 
 
+session_start();
+?><h1>Dashboard!</h1>
 <?php
 
 if ($_SESSION['logged_in_user_id'] ) {

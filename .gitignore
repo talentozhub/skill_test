@@ -1,0 +1,6 @@
+# Ignore environment variables file
+.env
+
+# Ignore session files
+storage/reports/*
+storage/session/*
