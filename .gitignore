@@ -1,0 +1,7 @@
+.env
+
+.DS_Store
+.vscode/
+
+employee_report.csv
+*.log

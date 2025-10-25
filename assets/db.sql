@@ -51,6 +51,8 @@ CREATE TABLE `employee` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
+-- Added gender column to employee table
+ALTER TABLE `employee` ADD COLUMN `gender` ENUM('male','female') NOT NULL DEFAULT 'male' AFTER `phone_number`;
 --
 -- Dumping data for table `employee`
 --
